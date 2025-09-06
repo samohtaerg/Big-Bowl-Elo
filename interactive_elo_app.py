@@ -305,7 +305,7 @@ class InteractiveEloSystem:
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=-0.3,  # Move legend much further down
+                y=-1.3,  # Move legend much further down
                 xanchor="center",
                 x=0.5
             ),
