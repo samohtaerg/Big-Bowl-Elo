@@ -16,9 +16,9 @@ import random
 LANGUAGES = {
     'zh': {
         'name': '中文',
-        'app_title': '大碗公餐厅排行榜',
+        'app_title': '大碗公排行榜',
         'homepage_title': '🏠 大碗公 餐厅排行榜',
-        'pk_title': '⚔️ 菜品PK对战模式',
+        'pk_title': '⚔️ 菜品PK模式',
         'statistics_title': '📊 详细统计分析',
         'navigation': '🧭 导航',
         'homepage': '🏠 主页排名',
@@ -349,7 +349,16 @@ def main():
         page_icon="🍽️",
         layout="wide"
     )
-    
+    st.markdown(
+        """
+        <style>
+        .stPlotlyChart {
+            overflow-x: auto;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
     # Initialize language
     if 'language' not in st.session_state:
         st.session_state.language = 'zh'
