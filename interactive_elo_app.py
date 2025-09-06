@@ -16,9 +16,9 @@ import random
 LANGUAGES = {
     'zh': {
         'name': '中文',
-        'app_title': '大碗公排行榜',
+        'app_title': '大碗公餐厅排行榜',
         'homepage_title': '🏠 大碗公 餐厅排行榜',
-        'pk_title': '⚔️ 菜品PK模式',
+        'pk_title': '⚔️ 菜品PK对战模式',
         'statistics_title': '📊 详细统计分析',
         'navigation': '🧭 导航',
         'homepage': '🏠 主页排名',
@@ -316,16 +316,17 @@ class InteractiveEloSystem:
             title=get_text('chart_title', lang),
             xaxis_title="Elo Score",
             yaxis_title="",
-            height=max(400, (len(official_df) + len(provisional_df)) * 40 + 100),
+            height=max(450, (len(official_df) + len(provisional_df)) * 40 + 120),
             showlegend=True,
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=-0.15,  # Move legend further down
+                y=-0.25,  # Move legend further down to prevent overlap
                 xanchor="center",
-                x=0.5
+                x=0.5,
+                font=dict(size=12)
             ),
-            margin=dict(b=80)  # Add bottom margin for legend
+            margin=dict(b=120, l=50, r=50, t=80)  # Increased bottom margin and better mobile margins
         )
         
         # Reverse y-axis to show highest ranked at top
@@ -347,18 +348,41 @@ def main():
     st.set_page_config(
         page_title="Da Wan Gong Restaurant Ranking",
         page_icon="🍽️",
-        layout="wide"
+        layout="wide",
+        initial_sidebar_state="collapsed"  # Better mobile experience
     )
-    st.markdown(
-        """
-        <style>
-        .stPlotlyChart {
-            overflow-x: auto;
+    
+    # Add mobile-responsive CSS
+    st.markdown("""
+    <style>
+    /* Mobile responsive adjustments */
+    @media (max-width: 768px) {
+        .stButton > button {
+            width: 100%;
+            margin-bottom: 0.5rem;
         }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+        .stMetric {
+            text-align: center;
+        }
+        .stMetric > div {
+            justify-content: center;
+        }
+        /* Better chart responsiveness */
+        .js-plotly-plot {
+            width: 100% !important;
+        }
+        /* Improve sidebar on mobile */
+        .css-1d391kg {
+            padding: 1rem 0.5rem;
+        }
+    }
+    /* Improve legend readability */
+    .plotly .legend {
+        font-size: 14px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Initialize language
     if 'language' not in st.session_state:
         st.session_state.language = 'zh'
@@ -471,65 +495,80 @@ def show_homepage(elo_system, lang='zh'):
                 st.session_state.current_page = "pk_mode"
                 st.rerun()
     else:
-        # Show current rankings
-        st.markdown(f"""
-        ## {get_text('current_ranking', lang)}
+        # Show current rankings with mobile-friendly metrics
+        st.markdown(f"## {get_text('current_ranking', lang)}")
         
-        **{get_text('current_ranking', lang).replace('📊 ', '')}:**
-        - 🍽️ {get_text('total_dishes', lang)}：{total_dishes} {'道' if lang == 'zh' else ''}
-        - ⚔️ {get_text('total_battles', lang)}：{total_games} {'场' if lang == 'zh' else ''}
-        - 🏆 {get_text('official_count', lang)}：{len(official_df)} {'道菜' if lang == 'zh' else ' dishes'}
-        - ⏳ {get_text('provisional_count', lang)}：{len(provisional_df)} {'道菜' if lang == 'zh' else ' dishes'}
-        """)
+        # Use metrics for better mobile display
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric(f"🍽️ {get_text('total_dishes', lang)}", f"{total_dishes}{'道' if lang == 'zh' else ''}")
+        with col2:
+            st.metric(f"⚔️ {get_text('total_battles', lang)}", f"{total_games}{'场' if lang == 'zh' else ''}")
+        with col3:
+            st.metric(f"🏆 {get_text('official_count', lang)}", f"{len(official_df)}{'道菜' if lang == 'zh' else ' dishes'}")
+        with col4:
+            st.metric(f"⏳ {get_text('provisional_count', lang)}", f"{len(provisional_df)}{'道菜' if lang == 'zh' else ' dishes'}")
         
         # Main ranking chart
         fig = elo_system.create_plotly_chart(lang)
         st.plotly_chart(fig, use_container_width=True)
         
-        # Quick actions
+        # Quick actions - improved mobile layout
         st.markdown("---")
-        col1, col2, col3 = st.columns(3)
         
-        with col1:
-            if st.button(get_text('continue_pk', lang), type="primary"):
-                st.session_state.current_page = "pk_mode"
-                st.rerun()
-        
-        with col2:
-            if st.button(get_text('view_stats', lang)):
-                st.session_state.current_page = "statistics"
-                st.rerun()
-        
-        with col3:
-            # Add confirmation state for reset
-            if 'confirm_reset' not in st.session_state:
-                st.session_state.confirm_reset = False
+        # Use container with responsive layout
+        with st.container():
+            # On mobile, buttons will stack vertically; on desktop, they'll be in a row
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                # Primary actions in a more mobile-friendly layout
+                sub_col1, sub_col2 = st.columns(2)
+                with sub_col1:
+                    if st.button(get_text('continue_pk', lang), type="primary", use_container_width=True):
+                        st.session_state.current_page = "pk_mode"
+                        st.rerun()
                 
-            if not st.session_state.confirm_reset:
-                if st.button(get_text('reset_data', lang), type="secondary"):
-                    st.session_state.confirm_reset = True
-                    st.rerun()
-            else:
-                st.warning(get_text('reset_confirm', lang))
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    if st.button(get_text('confirm_reset', lang), type="primary"):
-                        if os.path.exists(elo_system.save_file):
-                            os.remove(elo_system.save_file)
-                        st.session_state.elo_system = InteractiveEloSystem()
-                        st.session_state.confirm_reset = False
-                        st.success(get_text('data_reset_success', lang))
+                with sub_col2:
+                    if st.button(get_text('view_stats', lang), use_container_width=True):
+                        st.session_state.current_page = "statistics"
                         st.rerun()
-                with col_b:
-                    if st.button(get_text('cancel', lang), type="secondary"):
-                        st.session_state.confirm_reset = False
+            
+            with col2:
+                # Add confirmation state for reset
+                if 'confirm_reset' not in st.session_state:
+                    st.session_state.confirm_reset = False
+                    
+                if not st.session_state.confirm_reset:
+                    if st.button(get_text('reset_data', lang), type="secondary", use_container_width=True):
+                        st.session_state.confirm_reset = True
                         st.rerun()
+                else:
+                    st.warning(get_text('reset_confirm', lang))
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        if st.button(get_text('confirm_reset', lang), type="primary", use_container_width=True):
+                            if os.path.exists(elo_system.save_file):
+                                os.remove(elo_system.save_file)
+                            st.session_state.elo_system = InteractiveEloSystem()
+                            st.session_state.confirm_reset = False
+                            st.success(get_text('data_reset_success', lang))
+                            st.rerun()
+                    with col_b:
+                        if st.button(get_text('cancel', lang), type="secondary", use_container_width=True):
+                            st.session_state.confirm_reset = False
+                            st.rerun()
         
-        # Recent activity
+        # Recent activity with improved mobile layout
         if not official_df.empty or not provisional_df.empty:
             st.markdown(f"### {get_text('ranking_details', lang)}")
             
-            col1, col2 = st.columns(2)
+            # Use responsive columns that work better on mobile
+            if len(official_df) > 0 and len(provisional_df) > 0:
+                col1, col2 = st.columns([1, 1])
+            else:
+                # Single column layout when only one type of ranking exists
+                col1, col2 = st.columns([1, 1]) if len(official_df) > 0 else st.columns([1, 1])
             
             with col1:
                 if not official_df.empty:
@@ -538,7 +577,8 @@ def show_homepage(elo_system, lang='zh'):
                         medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"#{i}"
                         score_text = f"{row['Elo Score']:.0f}{'分' if lang == 'zh' else ''}"
                         games_text = f"({row['Games Played']}{'场' if lang == 'zh' else ' games'})"
-                        st.write(f"{medal} **{row['Dish']}** - {score_text} {games_text}")
+                        # Use markdown for better mobile formatting
+                        st.markdown(f"**{medal} {row['Dish']}**  \n{score_text} {games_text}")
             
             with col2:
                 if not provisional_df.empty:
@@ -546,7 +586,8 @@ def show_homepage(elo_system, lang='zh'):
                     for i, (_, row) in enumerate(provisional_df.head(10).iterrows(), 1):
                         score_text = f"{row['Elo Score']:.0f}{'分' if lang == 'zh' else ''}"
                         games_text = f"({row['Games Played']}{'场' if lang == 'zh' else ' games'})"
-                        st.write(f"#{i} **{row['Dish']}** - {score_text} {games_text}")
+                        # Use markdown for better mobile formatting
+                        st.markdown(f"**#{i} {row['Dish']}**  \n{score_text} {games_text}")
 
 def show_pk_mode(elo_system, lang='zh'):
     """Display PK battle mode"""
