@@ -473,11 +473,8 @@ class InteractiveEloSystem:
         if not official_df.empty:
             for i, (_, row) in enumerate(official_df.iterrows()):
                 dish_name = self.get_dish_name(row['Dish'], lang)
-                # Truncate long names for better display
-                if len(dish_name) > 25:
-                    dish_display = dish_name[:22] + "..."
-                else:
-                    dish_display = dish_name
+                # Use full dish name without truncation
+                dish_display = dish_name
                 
                 fig.add_trace(go.Bar(
                     y=[f"#{i+1}"],
@@ -497,11 +494,8 @@ class InteractiveEloSystem:
             official_count = len(official_df)
             for i, (_, row) in enumerate(provisional_df.iterrows()):
                 dish_name = self.get_dish_name(row['Dish'], lang)
-                # Truncate long names for better display
-                if len(dish_name) > 25:
-                    dish_display = dish_name[:22] + "..."
-                else:
-                    dish_display = dish_name
+                # Use full dish name without truncation
+                dish_display = dish_name
                 
                 fig.add_trace(go.Bar(
                     y=[f"#{official_count + i + 1}"],
@@ -526,8 +520,8 @@ class InteractiveEloSystem:
             showlegend=True,
             legend=dict(
                 orientation="h",
-                yanchor="bottom",
-                y=1.02,  # Move legend to top
+                yanchor="top",
+                y=-0.1,  # Move legend back to bottom
                 xanchor="center",
                 x=0.5
             ),
@@ -538,9 +532,8 @@ class InteractiveEloSystem:
                 autorange="reversed"  # Show #1 at top
             ),
             xaxis=dict(
-                showgrid=True,
-                gridwidth=1,
-                gridcolor='LightGray'
+                showgrid=False,
+                range=[1300, 1700]  # Set wider range for better score differentiation
             )
         )
         
