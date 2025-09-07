@@ -635,7 +635,7 @@ def main():
     if 'admin_logged_in' not in st.session_state:
         st.session_state.admin_logged_in = False
     if 'admin_password' not in st.session_state:
-        st.session_state.admin_password = "admin123"
+        st.session_state.admin_password = "tie59413!"
     
     # Navigation
     st.sidebar.title(get_text('navigation', lang))
@@ -1060,7 +1060,6 @@ def show_admin_panel(elo_system, lang='zh'):
                 else:
                     st.error("密码错误！")
         
-        st.info("默认密码: admin123")
         return
     
     # Admin logged in - show admin panel
