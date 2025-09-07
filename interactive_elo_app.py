@@ -821,16 +821,19 @@ def show_pk_mode(elo_system, lang='zh'):
             # Selected dishes display
             if st.session_state.selected_dishes:
                 st.markdown("---")
-                st.subheader("已选择的菜品：")
-                selected_text = " | ".join(st.session_state.selected_dishes)
+                st.subheader(get_text('selected_dishes', lang))
+                # Translate dish names for display
+                selected_dishes_display = [elo_system.get_dish_name(dish, lang) for dish in st.session_state.selected_dishes]
+                selected_text = " | ".join(selected_dishes_display)
                 st.success(f"🥘 {selected_text}")
                 
                 battle_count = len(list(combinations(st.session_state.selected_dishes, 2)))
-                st.info(f"将进行 **{battle_count}** 场PK对战")
+                battle_info = f"{get_text('battle_count', lang)} **{battle_count}** {get_text('battles', lang)}"
+                st.info(battle_info)
                 
                 # Start battle button
                 if len(st.session_state.selected_dishes) >= 2:
-                    if st.button("🚀 开始PK对战！", type="primary"):
+                    if st.button(get_text('start_battle', lang), type="primary"):
                         # Generate all battle pairs
                         st.session_state.current_battles = list(combinations(st.session_state.selected_dishes, 2))
                         # Shuffle for randomness
@@ -840,11 +843,11 @@ def show_pk_mode(elo_system, lang='zh'):
                         st.session_state.battle_mode = True
                         st.rerun()
                 else:
-                    st.warning("请至少选择2个菜品才能开始PK")
+                    st.warning(get_text('min_dishes_warning', lang))
             
             # Clear selection button
             if st.session_state.selected_dishes:
-                if st.button("🔄 重新选择", type="secondary"):
+                if st.button(get_text('reselect', lang), type="secondary"):
                     st.session_state.selected_dishes = []
                     st.rerun()
         
@@ -890,10 +893,12 @@ def show_pk_mode(elo_system, lang='zh'):
             
             # Progress bar
             progress = (current_index) / total_battles
-            st.progress(progress, text=f"对战进度：{current_index}/{total_battles}")
+            progress_text = f"{get_text('battle_progress', lang)}{current_index}/{total_battles}"
+            st.progress(progress, text=progress_text)
             
-            st.header(f"⚔️ 第 {current_index + 1} 场对战")
-            st.markdown("### 请选择你认为更好吃的菜品：")
+            battle_header = f"{get_text('battle_round', lang)} {current_index + 1} {get_text('round', lang)}"
+            st.header(battle_header)
+            st.markdown(f"### {get_text('choose_better', lang)}")
             
             # Battle interface
             col1, col2, col3 = st.columns([1, 0.3, 1])
