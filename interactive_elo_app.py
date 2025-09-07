@@ -469,18 +469,32 @@ class InteractiveEloSystem:
         if not official_df.empty:
             # Translate dish names for display
             display_dishes = [self.get_dish_name(dish, lang) for dish in official_df["Dish"]]
+            # fig.add_trace(go.Bar(
+            #     y=display_dishes,
+            #     x=official_df["Elo Score"],
+            #     orientation='h',
+            #     name=get_text('official_3plus', lang),
+            #     marker_color='orange',
+            #     text=[f"{row['Elo Score']:.0f}" for _, row in official_df.iterrows()],
+            #     textposition='outside',
+            #     hovertemplate='<b>%{y}</b><br>Elo: %{x:.0f}<br>Games: %{customdata}<extra></extra>',
+            #     customdata=official_df["Games Played"]
+            # ))
             fig.add_trace(go.Bar(
                 y=display_dishes,
                 x=official_df["Elo Score"],
                 orientation='h',
                 name=get_text('official_3plus', lang),
                 marker_color='orange',
-                text=[f"{row['Elo Score']:.0f}" for _, row in official_df.iterrows()],
-                textposition='outside',
+                text=[f"{dish} ({row['Elo Score']:.0f})" 
+                      for dish, (_, row) in zip(display_dishes, official_df.iterrows())],
+                textposition='inside',  
+                insidetextanchor="start", 
+                textfont=dict(color="white"), 
                 hovertemplate='<b>%{y}</b><br>Elo: %{x:.0f}<br>Games: %{customdata}<extra></extra>',
                 customdata=official_df["Games Played"]
             ))
-        
+
         # Add provisional ranking bars
         if not provisional_df.empty:
             # Translate dish names for display
