@@ -460,76 +460,89 @@ class InteractiveEloSystem:
         return official_df, provisional_df
     
     def create_plotly_chart(self, lang='zh'):
-        """Create interactive Plotly chart"""
+        """Create interactive Plotly chart with dish names inside bars"""
         official_df, provisional_df = self.generate_ranking_report()
         
         fig = go.Figure()
         
+        # Create combined dataframe for unified display
+        all_dishes = []
+        y_labels = []
+        
         # Add official ranking bars
         if not official_df.empty:
-            # Translate dish names for display
-            display_dishes = [self.get_dish_name(dish, lang) for dish in official_df["Dish"]]
-            # fig.add_trace(go.Bar(
-            #     y=display_dishes,
-            #     x=official_df["Elo Score"],
-            #     orientation='h',
-            #     name=get_text('official_3plus', lang),
-            #     marker_color='orange',
-            #     text=[f"{row['Elo Score']:.0f}" for _, row in official_df.iterrows()],
-            #     textposition='outside',
-            #     hovertemplate='<b>%{y}</b><br>Elo: %{x:.0f}<br>Games: %{customdata}<extra></extra>',
-            #     customdata=official_df["Games Played"]
-            # ))
-            fig.add_trace(go.Bar(
-                y=display_dishes,
-                x=official_df["Elo Score"],
-                orientation='h',
-                name=get_text('official_3plus', lang),
-                marker_color='orange',
-                text=[f"{dish} ({row['Elo Score']:.0f})" 
-                      for dish, (_, row) in zip(display_dishes, official_df.iterrows())],
-                textposition='inside',  
-                insidetextanchor="start", 
-                textfont=dict(color="white"), 
-                hovertemplate='<b>%{y}</b><br>Elo: %{x:.0f}<br>Games: %{customdata}<extra></extra>',
-                customdata=official_df["Games Played"]
-            ))
-
+            for i, (_, row) in enumerate(official_df.iterrows()):
+                dish_name = self.get_dish_name(row['Dish'], lang)
+                # Truncate long names for better display
+                if len(dish_name) > 25:
+                    dish_display = dish_name[:22] + "..."
+                else:
+                    dish_display = dish_name
+                
+                fig.add_trace(go.Bar(
+                    y=[f"#{i+1}"],
+                    x=[row['Elo Score']],
+                    orientation='h',
+                    name=get_text('official_3plus', lang),
+                    marker_color='orange',
+                    text=[f"{dish_display} ({row['Elo Score']:.0f})"],
+                    textposition='inside',
+                    textfont=dict(color='white', size=11),
+                    hovertemplate=f'<b>{dish_name}</b><br>Elo: {row["Elo Score"]:.0f}<br>Games: {row["Games Played"]}<extra></extra>',
+                    showlegend=(i == 0)  # Only show legend for first item
+                ))
+        
         # Add provisional ranking bars
         if not provisional_df.empty:
-            # Translate dish names for display
-            display_dishes = [self.get_dish_name(dish, lang) for dish in provisional_df["Dish"]]
-            fig.add_trace(go.Bar(
-                y=display_dishes,
-                x=provisional_df["Elo Score"],
-                orientation='h',
-                name=get_text('provisional_less3', lang),
-                marker_color='gray',
-                text=[f"{row['Elo Score']:.0f}" for _, row in provisional_df.iterrows()],
-                textposition='outside',
-                hovertemplate='<b>%{y}</b><br>Elo: %{x:.0f}<br>Games: %{customdata}<extra></extra>',
-                customdata=provisional_df["Games Played"]
-            ))
+            official_count = len(official_df)
+            for i, (_, row) in enumerate(provisional_df.iterrows()):
+                dish_name = self.get_dish_name(row['Dish'], lang)
+                # Truncate long names for better display
+                if len(dish_name) > 25:
+                    dish_display = dish_name[:22] + "..."
+                else:
+                    dish_display = dish_name
+                
+                fig.add_trace(go.Bar(
+                    y=[f"#{official_count + i + 1}"],
+                    x=[row['Elo Score']],
+                    orientation='h',
+                    name=get_text('provisional_less3', lang),
+                    marker_color='gray',
+                    text=[f"{dish_display} ({row['Elo Score']:.0f})"],
+                    textposition='inside',
+                    textfont=dict(color='white', size=11),
+                    hovertemplate=f'<b>{dish_name}</b><br>Elo: {row["Elo Score"]:.0f}<br>Games: {row["Games Played"]}<extra></extra>',
+                    showlegend=(i == 0)  # Only show legend for first item
+                ))
         
-        # Update layout
+        # Update layout for compact display with dish names inside bars
+        total_dishes = len(official_df) + len(provisional_df)
         fig.update_layout(
             title=get_text('chart_title', lang),
             xaxis_title="Elo Score",
-            yaxis_title="",
-            height=max(400, (len(official_df) + len(provisional_df)) * 40 + 100),
+            yaxis_title="Ranking",
+            height=max(300, total_dishes * 35 + 150),
             showlegend=True,
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=-0.3,  # Move legend much further down
+                y=1.02,  # Move legend to top
                 xanchor="center",
                 x=0.5
             ),
-            margin=dict(b=120)  # Increase bottom margin for legend
+            margin=dict(l=50, r=50, t=100, b=50),  # Reduced left margin since names are inside bars
+            yaxis=dict(
+                tickmode='linear',
+                dtick=1,
+                autorange="reversed"  # Show #1 at top
+            ),
+            xaxis=dict(
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='LightGray'
+            )
         )
-        
-        # Reverse y-axis to show highest ranked at top
-        fig.update_yaxes(categoryorder="total ascending")
         
         return fig
     
