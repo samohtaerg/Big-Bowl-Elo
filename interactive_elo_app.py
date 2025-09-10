@@ -258,24 +258,39 @@ class InteractiveEloSystem:
         self.save_file = save_file
         self.menu_file = menu_file
         self.history_file = history_file
-        # Dish name translations
-        self.dish_translations = {
-            "红烧肉末玉子豆腐饭": "Braised Pork with Egg Tofu Rice",
-            "麻辣牛腩牛腱牛百叶汤米线": "Spicy Beef Combo Rice Noodle Soup",
-            "滑蛋叉烧饭": "Scrambled Egg BBQ Pork Rice",
-            "照烧金针肥牛盖饭": "Teriyaki Beef with Enoki Rice Bowl",
-            "时菜牛肉饭": "Beef with Seasonal Vegetable Rice",
-            "沙爹炒河粉": "Satay Stir-fried Rice Noodles",
-            "豉椒牛肉饭": "Beef with Black Bean Sauce Rice",
-            "五香薯仔牛柳饭": "Five Spice Potato Beef Rice",
-            "咖喱牛腩饭": "Curry Beef Brisket Rice",
-            "豆腐牛肉饭": "Beef with Tofu Rice",
-            "香酥葱油鸡扒饭": "Crispy Scallion Oil Chicken Rice",
-            "榨菜肉丝饭": "Pork with Pickled Mustard Rice"
-        }
+        # Load dish name translations from menu file
+        self.dish_translations = self.load_dish_translations()
         self.load_menu()
         self.load_existing_ratings()
         self.load_battle_history()
+    
+    def load_dish_translations(self):
+        """Load dish translations from menu file"""
+        translations = {}
+        encodings_to_try = ['utf-8-sig', 'utf-8', 'gb2312', 'gbk', 'cp936']
+        
+        if os.path.exists(self.menu_file):
+            for encoding in encodings_to_try:
+                try:
+                    with open(self.menu_file, 'r', encoding=encoding) as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and '|' in line:
+                                # Extract number, Chinese name, English name
+                                parts = line.split('→', 1) if '→' in line else ['', line]
+                                if len(parts) == 2:
+                                    content = parts[1].strip()
+                                    if '|' in content:
+                                        chinese_name, english_name = content.split('|', 1)
+                                        chinese_name = chinese_name.strip()
+                                        english_name = english_name.strip()
+                                        if chinese_name and english_name:
+                                            translations[chinese_name] = english_name
+                    break
+                except (UnicodeDecodeError, UnicodeError):
+                    continue
+        
+        return translations
     
     def get_dish_name(self, dish, lang='zh'):
         """Get dish name in specified language"""
@@ -304,11 +319,20 @@ class InteractiveEloSystem:
                     for line in f:
                         line = line.strip()
                         if line:  # Skip empty lines
-                            # Check if line has format "数字→菜名" or just "菜名"
+                            # Check if line has format "数字→菜名 | English" or just "菜名"
                             if '→' in line:
-                                dish_name = line.split('→')[1].strip()
+                                dish_content = line.split('→')[1].strip()
+                                # Extract Chinese name from "Chinese | English" format
+                                if '|' in dish_content:
+                                    dish_name = dish_content.split('|')[0].strip()
+                                else:
+                                    dish_name = dish_content
                             else:
-                                dish_name = line
+                                # Handle lines without number prefix
+                                if '|' in line:
+                                    dish_name = line.split('|')[0].strip()
+                                else:
+                                    dish_name = line
                             
                             if dish_name:
                                 self.all_dishes.append(dish_name)
@@ -620,7 +644,7 @@ def main():
         current_index = lang_options.index(st.session_state.language)
         
         selected_lang = st.selectbox(
-            "🌐", 
+            "🌐 Language / 语言", 
             lang_options, 
             format_func=lambda x: LANGUAGES[x]['name'],
             index=current_index,
@@ -811,10 +835,36 @@ def show_pk_mode(elo_system, lang='zh'):
             st.header(get_text('select_dishes', lang))
             st.markdown(get_text('select_dishes_desc', lang))
             
+            # Add search/filter functionality
+            search_text = st.text_input(
+                "🔍 " + ("搜索菜品..." if lang == 'zh' else "Search dishes..."),
+                placeholder="输入菜名进行搜索" if lang == 'zh' else "Type dish name to search",
+                key="dish_search"
+            )
+            
+            # Filter dishes based on search
+            if search_text:
+                filtered_dishes = []
+                for dish in elo_system.all_dishes:
+                    dish_name_zh = dish.lower()
+                    dish_name_en = elo_system.get_dish_name(dish, 'en').lower()
+                    search_lower = search_text.lower()
+                    
+                    if search_lower in dish_name_zh or search_lower in dish_name_en:
+                        filtered_dishes.append(dish)
+            else:
+                filtered_dishes = elo_system.all_dishes
+            
+            # Show filtered count
+            if search_text and filtered_dishes:
+                st.info(f"找到 {len(filtered_dishes)} 道菜品" if lang == 'zh' else f"Found {len(filtered_dishes)} dishes")
+            elif search_text and not filtered_dishes:
+                st.warning("没有找到匹配的菜品" if lang == 'zh' else "No dishes found")
+            
             # Create columns for dish selection
             cols = st.columns(4)
             
-            for i, dish in enumerate(elo_system.all_dishes):
+            for i, dish in enumerate(filtered_dishes):
                 col_idx = i % 4
                 with cols[col_idx]:
                     # Get current Elo for display
@@ -829,7 +879,7 @@ def show_pk_mode(elo_system, lang='zh'):
                     selected = st.checkbox(
                         f"**{dish_name}**\n{score_text} {games_text}",
                         value=is_selected,
-                        key=f"dish_{i}"
+                        key=f"dish_{dish}_{i}"  # Use dish name to ensure uniqueness
                     )
                     
                     # Update selection
